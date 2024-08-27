@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tetris</title>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+    <meta name="viewport" content="initial-scale=1, width=device-width, user-scalable=no, viewport-fit=cover"
+          id="user-scalable-meta">
+    <style>
+        .points-container {
+            position: absolute;
+            width: auto;
+            height: auto;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 auto;
+        }
+
+        .point {
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 0 1px #000;
+        }
+
+        .point.select {
+            background: #2c3e50;
+        }
+
+        .point.food {
+            background: #793535;
+            transition: 0.3s;
+            animation-name: animateFood;
+            animation-iteration-count: infinite;
+            animation-duration: 1s;
+        }
+
+        .result-popup {
+            position: absolute;
+            width: 100%;
+            max-width: 300px;
+            padding: 20px;
+            top: 50%;
+            left: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 1px #000;
+            background: #fff;
+            font-family: sans-serif;
+            color: #3A3A38;
+            font-size: 18px;
+            z-index: 1;
+        }
+
+        .result-popup.show {
+            display: flex;
+        }
+
+        .game-score {
+            font-size: 24px;
+        }
+
+        .primary {
+            border: none;
+            background: #2c3e50;
+            padding: 10px;
+            color: #fff;
+        }
+
+        @keyframes animateFood {
+            0% {
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="points-container">
+</div>
+<div class="result-popup">
+    <span>Game Result</span>
+    <span class="game-score">Game score</span>
+    <button class="primary" onclick="window.location.reload()">Reload Game</button>
+</div>
+<script>
+    const pointsXY = [{x: 0, y: 6, dir: 'right'}];
+    let isTop = false;
+    let isLeft = false;
+    let isRight = true;
+    let isBottom = false;
+    let gameScore = 0;
+    let speedRender = 300;
+    let intervalRender;
+    const points = [];
+    const container = document.querySelector('.points-container');
+
+    function createPoint(pointsCount, pointWidth) {
+        for (let i = 1; i <= pointsCount; i++) {
+            let pointX = [];
+            for (let k = 1; k <= pointsCount; k++) {
+                const pointEl = document.createElement('div');
+                pointEl.classList.add('point');
+                container.appendChild(pointEl);
+                pointX.push({select: false, dir: '', food: false});
+            }
+            points.push(pointX);
+        }
+        container.style.width = `${pointsCount * pointWidth}px`;
+        points[7][7].food = true;
+    }
+
+    createPoint(15, 50);
+
+    function movePoints() {
+        intervalRender = setInterval(() => {
+            pointsXY.forEach((point, i) => {
+                if (points[point.y][point.x]?.food) {
+                    createFood(point);
+                }
+                if (points[point.y][point.x]?.dir === 'top') {
+                    pointsXY[i].dir = 'top';
+                }
+                if (points[point.y][point.x]?.dir === 'left') {
+                    pointsXY[i].dir = 'left';
+                }
+                if (points[point.y][point.x]?.dir === 'right') {
+                    pointsXY[i].dir = 'right';
+                }
+                if (points[point.y][point.x]?.dir === 'bottom') {
+                    pointsXY[i].dir = 'bottom';
+                }
+
+                let lastPoint = pointsXY.indexOf(point) === pointsXY.length - 1;
+                if (lastPoint && points[point.y][point.x]) {
+                    points[point.y][point.x].dir = '';
+                }
+                if (point.dir === 'top') {
+                    point.y--;
+                    if (points[point.y] && points[point.y][point.x]?.select) {
+                        clearInterval(intervalRender);
+                        showResult()
+                    }
+                    if (point.y !== -2) {
+                        points[point.y + 1][point.x].select = false;
+                    }
+                    if (point.y <= -1) {
+                        point.y = points[point.y + 1].length - 1;
+                    }
+                    points[point.y][point.x].select = true;
+                }
+                if (point.dir === 'left') {
+                    point.x--;
+                    if (points[point.y][point.x]?.select) {
+                        clearInterval(intervalRender);
+                        showResult()
+                    }
+                    if (point.x !== points[point.y].length - 1) {
+                        points[point.y][point.x + 1].select = false;
+                    }
+                    if (point.x <= -1) {
+                        point.x = points[point.y].length - 1;
+                    }
+                    points[point.y][point.x].select = true;
+                }
+                if (point.dir === 'right') {
+                    point.x++;
+                    if (points[point.y][point.x]?.select) {
+                        clearInterval(intervalRender);
+                        showResult()
+                    }
+                    if (point.x !== 0) {
+                        points[point.y][point.x - 1].select = false;
+                    }
+                    if (point.x >= points[point.y].length) {
+                        point.x = 0;
+                    }
+                    points[point.y][point.x].select = true;
+                }
+                if (point.dir === 'bottom') {
+                    point.y++;
+                    if (points[point.y] && points[point.y][point.x]?.select) {
+                        clearInterval(intervalRender);
+                        showResult()
+                    }
+                    if (point.y !== 0) {
+                        points[point.y - 1][point.x].select = false;
+                    }
+                    if (point.y >= points.length) {
+                        point.y = 0;
+                    }
+                    points[point.y][point.x].select = true;
+                }
+            });
+            renderDisplay();
+        }, speedRender);
+    }
+
+    movePoints();
+
+    function renderDisplay() {
+        let i = 0;
+        points.forEach((pointX) => {
+            pointX.forEach((point) => {
+                container.children[i].classList.toggle('select', point.select);
+                container.children[i].classList.toggle('food', point.food);
+                i++;
+            });
+        });
+    }
+
+    function createFood(point) {
+        points[point.y][point.x].food = false;
+        const randomNumber = Math.floor(Math.random() * 14) + 1;
+        points[randomNumber][randomNumber].food = true;
+        pointsXY.push({
+            x: pointsXY[pointsXY.length - 1].x,
+            y: pointsXY[pointsXY.length - 1].y,
+            dir: pointsXY[pointsXY.length - 1].dir
+        });
+        gameScore++;
+        speedRender = speedRender - 5;
+        clearInterval(intervalRender);
+        movePoints();
+    }
+
+    function showResult() {
+        const gameScoreEl = document.querySelector('.game-score');
+        const resultPopupEl = document.querySelector('.result-popup');
+        resultPopupEl.classList.add('show');
+        gameScoreEl.textContent = `Game Score: ${gameScore}`;
+    }
+
+    window.addEventListener('keydown', (evt) => {
+        if (evt.keyCode === 38) {
+            points[pointsXY[0].y][pointsXY[0].x].dir = 'top';
+        }
+        if (evt.keyCode === 39) {
+            points[pointsXY[0].y][pointsXY[0].x].dir = 'right';
+        }
+        if (evt.keyCode === 37) {
+            points[pointsXY[0].y][pointsXY[0].x].dir = 'left';
+        }
+        if (evt.keyCode === 40) {
+            points[pointsXY[0].y][pointsXY[0].x].dir = 'bottom';
+        }
+    });
+
+</script>
+</body>
+</html>
